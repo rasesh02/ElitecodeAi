@@ -1,0 +1,79 @@
+services:
+  
+
+  # Redis Cache
+  redis:
+    image: redis:7.2-alpine
+    container_name: quickcode_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - quickcode_network
+
+  # QuickCode Frontend (Next.js)
+  quickcode-frontend:
+    build:
+      context: ./QuickCode
+      dockerfile: dockerfile
+      args:
+        - NEXT_PUBLIC_API_FRONTEND_PROBLEM=${NEXT_PUBLIC_API_FRONTEND_PROBLEM}
+        - NEXT_PUBLIC_API_OPEN_API=${NEXT_PUBLIC_API_OPEN_API}
+        - NEXT_PUBLIC_API_WEBSOCKET_URL=${NEXT_PUBLIC_API_WEBSOCKET_URL}
+        - NEXT_PUBLIC_API_JWT_SECRET=${NEXT_PUBLIC_API_JWT_SECRET}
+        - NEXT_PUBLIC_API_ADMIN_KEY=${NEXT_PUBLIC_API_ADMIN_KEY}
+    container_name: quickcode_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DOCKER_ENV=true
+    env_file:
+      - ./QuickCode/.env.local
+      - .env
+    networks:
+      - quickcode_network
+
+  # QuickCode Backend Server
+  quickcode-backend:
+    build:
+      context: ./QuickCode_Server
+      dockerfile: dockerfile
+    container_name: quickcode_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    networks:
+      - quickcode_network
+    # Override the default CMD to run both backend and worker
+    command: >
+      sh -c "
+        node backend/src/index.js &
+        node Worker-1/src/index.js &
+        wait
+      "
+
+  # QuickCode Worker (Code Execution Service)
+  quickcode-worker:
+    build:
+      context: ./QuickCode_Server
+      dockerfile: dockerfile
+    container_name: quickcode_worker
+    restart: unless-stopped
+    depends_on:
+      - redis
+    networks:
+      - quickcode_network
+    command: ["node", "Worker-1/src/index.js"]
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  quickcode_network:
+    driver: bridge
