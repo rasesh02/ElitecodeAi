@@ -338,10 +338,6 @@ docker compose build --no-cache
 
 This project is licensed under the MIT License.
 
-## 👥 Authors
-
-- **Shubham Phogat** - [GitHub](https://github.com/ShubhamPhogat)
-
 ## 🙏 Acknowledgments
 
 - Next.js team for the amazing framework
@@ -358,5 +354,4 @@ If you have any questions or run into issues, please:
 
 ---
 
-Made with ❤️ by Shubham Phogat
 
